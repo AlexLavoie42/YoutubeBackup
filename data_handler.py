@@ -15,11 +15,13 @@ class Channel(VideoGroup):
 
 
 class Video:
-    def __init__(self, data_list):
+    def __init__(self, files, info):
         """
-        :param data_list: List of 'VideoData'
+        :param files: list of 'VideoFile'
+        :param info: list of 'VideoInfo'
         """
-        self.data = data_list
+        self.files = files
+        self.info = info
 
 
 class VideoData:
@@ -32,10 +34,9 @@ class VideoData:
         super().__init__()
 
 
-class VideoFiles(VideoData):
-    def __init__(self, path, data):
+class VideoFile(VideoData):
+    def __init__(self, path):
         super().__init__(path)
-        self.data = data
 
 
 class VideoInfo(VideoData):
