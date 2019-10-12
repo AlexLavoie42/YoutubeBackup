@@ -1,3 +1,5 @@
+import os
+
 import pytube
 
 
@@ -27,7 +29,12 @@ class DataFetcher:
         self.codec = codec
         self.fps = fps
         self.res = resolution
-        self.folder = folder
+        if folder is None:
+            self.folder = ".\\data"
+        else:
+            self.folder = folder
+        if not os.path.exists(folder):
+            os.mkdir(folder)
         self.video_urls = []
         self.downloader = Downloader()
 
@@ -35,8 +42,13 @@ class DataFetcher:
         if "youtube.com" not in url:
             raise ValueError("'url' must be a valid youtube url")
         elif 'list' in url:
-            # TODO: implement playlist
-            raise NotImplementedError("Playlists not yet implemented")
+            playlist = pytube.Playlist(url)
+            playlist.playlist_url = playlist.construct_playlist_url()
+            playlist.populate_video_urls()
+            for u in playlist.video_urls:
+                u = u.replace("https", "http")
+                u = u.replace("www.", "")
+                self.video_urls.append(u)
         elif 'watch?' in url:
             self.video_urls.append(url)
         elif 'channel' in url or 'user' in url:
@@ -47,7 +59,9 @@ class DataFetcher:
 
     def save_data(self):
         for v in self.video_urls:
+            print(v)
             self.downloader.get_video_stream(v, self.res, self.fps,
                                              self.codec, self.inc_thumb)
             self.downloader.save_video(self.folder,
                                        self.downloader.stream.title)
+        self.video_urls = []

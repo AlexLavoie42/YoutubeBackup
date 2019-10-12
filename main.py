@@ -10,7 +10,8 @@ class VideoHandler:
         self.fetcher = None
 
     def init_fetcher(self, res="720p", fps=30,
-                     extension="mp4", include_thumbnail=True, folder=None):
+                     extension="mp4", include_thumbnail=True,
+                     folder=".\\data"):
         self.fetcher = scraper.DataFetcher(res, fps, extension,
                                            include_thumbnail, folder)
 
@@ -25,7 +26,6 @@ def main():
     handler.init_fetcher()
     in_ = input("Enter youtube video url:")
     while in_.lower() is not "quit" or "q":
-        handler.save_videos(in_)  # DEBUGGING
         try:
             handler.save_videos(in_)
         except Exception as e:
