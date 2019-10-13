@@ -1,4 +1,6 @@
+import json
 import os
+import urllib.request
 
 import pytube
 
@@ -52,8 +54,12 @@ class DataFetcher:
         elif 'watch?' in url:
             self.video_urls.append(url)
         elif 'channel' in url or 'user' in url:
-            # TODO: implement channels
-            raise NotImplementedError("Channels not yet implemented")
+            if 'channel' in url:
+                channel_id = url.split("channel/")[1]
+                self.video_urls = self.get_videos_in_channel(channel_id)
+            elif 'user' in url:
+                raise NotImplementedError("User's are not implemented."
+                                          " Use channel url instead")
         else:
             raise ValueError("Unrecognized youtube url")
 
@@ -65,3 +71,31 @@ class DataFetcher:
             self.downloader.save_video(self.folder,
                                        self.downloader.stream.title)
         self.video_urls = []
+
+    @staticmethod
+    def get_videos_in_channel(channel_id):
+        api_key = "AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM"
+
+        base_video_url = 'https://www.youtube.com/watch?v='
+        base_search_url = 'https://www.googleapis.com/youtube/v3/search?'
+
+        first_url = base_search_url + \
+                    f'key={api_key}&channelId={channel_id}' \
+                    f'&part=snippet,id&order=date&maxResults=25'
+
+        video_links = []
+        url = first_url
+        while True:
+            inp = urllib.request.urlopen(url)
+            resp = json.load(inp)
+
+            for i in resp['items']:
+                if i['id']['kind'] == "youtube#video":
+                    video_links.append(base_video_url + i['id']['videoId'])
+
+            try:
+                next_page_token = resp['nextPageToken']
+                url = first_url + '&pageToken={}'.format(next_page_token)
+            except Exception:
+                break
+        return video_links

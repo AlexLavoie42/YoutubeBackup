@@ -34,11 +34,6 @@ class VideoData:
         super().__init__()
 
 
-class VideoFile(VideoData):
-    def __init__(self, path):
-        super().__init__(path)
-
-
 class VideoInfo(VideoData):
     def __init__(self, title, description, tags, category, thumbnail_url, url,
                  comments, views, subscribers, likes, dislikes, path):
