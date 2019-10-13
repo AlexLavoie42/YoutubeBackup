@@ -24,7 +24,7 @@ class Downloader:
 
 
 class DataFetcher:
-    thumbnail_url = "https://img.youtube.com/vi/%s/0.jpg"
+    api_key = "AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM"
 
     def __init__(self, resolution, fps, codec, inc_thumbnail, folder):
         self.inc_thumb = inc_thumbnail
@@ -58,8 +58,9 @@ class DataFetcher:
                 channel_id = url.split("channel/")[1]
                 self.video_urls = self.get_videos_in_channel(channel_id)
             elif 'user' in url:
-                raise NotImplementedError("User's are not implemented."
-                                          " Use channel url instead")
+                channel_id = self.get_channel_id_from_user(
+                    url.split("user/")[1])
+                self.video_urls = self.get_videos_in_channel(channel_id)
         else:
             raise ValueError("Unrecognized youtube url")
 
@@ -72,15 +73,14 @@ class DataFetcher:
                                        self.downloader.stream.title)
         self.video_urls = []
 
-    @staticmethod
-    def get_videos_in_channel(channel_id):
-        api_key = "AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM"
+    @classmethod
+    def get_videos_in_channel(cls, channel_id):
 
         base_video_url = 'https://www.youtube.com/watch?v='
         base_search_url = 'https://www.googleapis.com/youtube/v3/search?'
 
         first_url = base_search_url + \
-                    f'key={api_key}&channelId={channel_id}' \
+                    f'key={cls.api_key}&channelId={channel_id}' \
                     f'&part=snippet,id&order=date&maxResults=25'
 
         video_links = []
@@ -99,3 +99,13 @@ class DataFetcher:
             except Exception:
                 break
         return video_links
+
+    @classmethod
+    def get_channel_id_from_user(cls, user):
+        base_search_url = 'https://www.googleapis.com/youtube/v3/channels?'
+        url = (base_search_url +
+               f'key={cls.api_key}&forUsername={user}&part=id')
+        inp = urllib.request.urlopen(url)
+        resp = json.load(inp)
+
+        return resp['items'][0]['id']
