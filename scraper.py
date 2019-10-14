@@ -10,10 +10,11 @@ class Scraper:
 
 
 class Downloader:
-    def __init__(self):
+    def __init__(self, api_key):
         self.stream = None
+        self.api = ApiHandler(api_key)
 
-    def get_video_stream(self, url, resolution, fps, codec, inc_thumbnail):
+    def get_video_stream(self, url, resolution, fps, codec):
         self.stream = pytube.YouTube(url).streams.filter(file_extension=codec,
                                                          res=resolution,
                                                          fps=fps).first()
@@ -22,12 +23,15 @@ class Downloader:
         if self.stream is not None:
             self.stream.download(path, name)
 
+    def save_video_data(self, url, path, name):
+        data = self.api.get_video_data(url)
+
+        json.dumps(data)
+
 
 class DataFetcher:
-    api_key = "AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM"
 
-    def __init__(self, resolution, fps, codec, inc_thumbnail, folder):
-        self.inc_thumb = inc_thumbnail
+    def __init__(self, resolution, fps, codec, folder, api_key):
         self.codec = codec
         self.fps = fps
         self.res = resolution
@@ -38,7 +42,8 @@ class DataFetcher:
         if not os.path.exists(folder):
             os.mkdir(folder)
         self.video_urls = []
-        self.downloader = Downloader()
+        self.downloader = Downloader(api_key)
+        self.api = ApiHandler(api_key)
 
     def parse_url(self, url):
         if "youtube.com" not in url:
@@ -56,11 +61,11 @@ class DataFetcher:
         elif 'channel' in url or 'user' in url:
             if 'channel' in url:
                 channel_id = url.split("channel/")[1]
-                self.video_urls = self.get_videos_in_channel(channel_id)
+                self.video_urls = self.api.get_videos_in_channel(channel_id)
             elif 'user' in url:
-                channel_id = self.get_channel_id_from_user(
+                channel_id = self.api.get_channel_id_from_user(
                     url.split("user/")[1])
-                self.video_urls = self.get_videos_in_channel(channel_id)
+                self.video_urls = self.api.get_videos_in_channel(channel_id)
         else:
             raise ValueError("Unrecognized youtube url")
 
@@ -68,19 +73,25 @@ class DataFetcher:
         for v in self.video_urls:
             print(v)
             self.downloader.get_video_stream(v, self.res, self.fps,
-                                             self.codec, self.inc_thumb)
+                                             self.codec)
             self.downloader.save_video(self.folder,
                                        self.downloader.stream.title)
+            self.downloader.save_video_data(v, self.folder,
+                                            self.downloader.stream.title)
         self.video_urls = []
 
-    @classmethod
-    def get_videos_in_channel(cls, channel_id):
+
+class ApiHandler:
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def get_videos_in_channel(self, channel_id):
 
         base_video_url = 'https://www.youtube.com/watch?v='
         base_search_url = 'https://www.googleapis.com/youtube/v3/search?'
 
         first_url = base_search_url + \
-                    f'key={cls.api_key}&channelId={channel_id}' \
+                    f'key={self.api_key}&channelId={channel_id}' \
                     f'&part=snippet,id&order=date&maxResults=25'
 
         video_links = []
@@ -100,12 +111,47 @@ class DataFetcher:
                 break
         return video_links
 
-    @classmethod
-    def get_channel_id_from_user(cls, user):
+    def get_channel_id_from_user(self, user):
         base_search_url = 'https://www.googleapis.com/youtube/v3/channels?'
         url = (base_search_url +
-               f'key={cls.api_key}&forUsername={user}&part=id')
+               f'key={self.api_key}&forUsername={user}&part=id')
         inp = urllib.request.urlopen(url)
         resp = json.load(inp)
 
         return resp['items'][0]['id']
+
+    def get_video_data(self, video_id):
+        search_url = 'https://www.googleapis.com/youtube/v3/videos?key=' \
+                     f'{self.api_key}'
+        title = None
+        description = None
+        tags = None
+        category = None
+        thumbnail_url = None
+        url = None
+        comments = None
+        views = None
+        subscribers = None
+        likes = None
+        dislikes = None
+        return VideoInfo(title, description, tags, category, thumbnail_url,
+                         url, comments, views, subscribers, likes, dislikes)
+
+
+class VideoInfo:
+    def __init__(self, title, description, tags, category,
+                 thumbnail_url, url,
+                 comments, views, subscribers, likes, dislikes):
+        self.data = {
+            'Title': title,
+            'Description': description,
+            'Tags': tags,
+            'Category': category,
+            'ThumbnailURL': thumbnail_url,
+            'URL': url,
+            'Comments': comments,
+            'Views': views,
+            'Subscribers': subscribers,
+            'Likes': likes,
+            'Dislikes': dislikes
+        }
