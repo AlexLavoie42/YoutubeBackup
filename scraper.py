@@ -24,9 +24,11 @@ class Downloader:
             self.stream.download(path, name)
 
     def save_video_data(self, url, path, name):
-        data = self.api.get_video_data(url)
+        data = self.api.get_video_data(url.split("v=")[1])
 
-        json.dumps(data)
+        json_str = json.dumps(data.data)
+        with open(f"{path}\\{name}", "w+") as f:
+            f.write(json_str)
 
 
 class DataFetcher:
@@ -122,13 +124,17 @@ class ApiHandler:
 
     def get_video_data(self, video_id):
         search_url = 'https://www.googleapis.com/youtube/v3/videos?key=' \
-                     f'{self.api_key}'
-        title = None
-        description = None
-        tags = None
-        category = None
-        thumbnail_url = None
-        url = None
+                     f'{self.api_key}&part=snippet'
+        url = f"{search_url}&id={video_id}"
+        inp = urllib.request.urlopen(url)
+        data = json.load(inp)['items'][0]['snippet']
+
+        title = data['title']
+        description = data['description']
+        tags = data['tags']
+        category = data['categoryId']
+        thumbnail_url = data['thumbnails']['default']['url']
+        url = f"youtube.com/watch?v={video_id}"
         comments = None
         views = None
         subscribers = None

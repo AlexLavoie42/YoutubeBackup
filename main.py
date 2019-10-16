@@ -15,7 +15,6 @@ class VideoHandler:
                      api_key='AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM'):
         self.fetcher = scraper.DataFetcher(res, fps, extension,
                                            folder, api_key)
-        self.fetcher.api.init_api(api_key)
 
     def save_videos(self, url):
         if isinstance(self.fetcher, scraper.DataFetcher):
@@ -28,6 +27,7 @@ def main():
     handler.init_fetcher()
     in_ = input("Enter youtube video url:")
     while in_.lower() is not "quit" or "q":
+        handler.save_videos(in_)
         try:
             handler.save_videos(in_)
         except Exception as e:
