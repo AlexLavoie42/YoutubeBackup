@@ -6,10 +6,6 @@ import pandas
 import pytube
 
 
-class Scraper:
-    pass
-
-
 class Downloader:
     def __init__(self, api_key):
         self.stream = None
@@ -28,8 +24,10 @@ class Downloader:
         data = self.api.get_video_data(url.split("v=")[1])
 
         json_str = json.dumps(data.data)
-        with open(f"{path}\\{name}", "w+") as f:
+        with open(f"{path}\\{name}.json", "w+") as f:
             f.write(json_str)
+        js = pandas.read_json(f"{path}\\{name}.json", typ='series')
+        js.to_csv(f"{path}\\{name}.csv", header=True)
 
 
 class DataFetcher:
@@ -109,9 +107,10 @@ class ApiHandler:
             try:
                 next_page_token = resp['nextPageToken']
                 url = first_url + '&pageToken={}'.format(next_page_token)
-            except Exception:
-                break
-        return video_links
+            except Exception as e:
+                for a in e.args:
+                    print(a)
+            return video_links
 
     def get_channel_id_from_user(self, user):
         base_search_url = 'https://www.googleapis.com/youtube/v3/channels?'
@@ -131,7 +130,9 @@ class ApiHandler:
 
         title = data['title']
         description = data['description']
-        tags = data['tags']
+        tags = ''
+        for t in data['tags']:
+            tags += t+","
         category = data['categoryId']
         thumbnail_url = data['thumbnails']['default']['url']
         url = f"youtube.com/watch?v={video_id}"
