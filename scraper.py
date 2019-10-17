@@ -2,6 +2,7 @@ import json
 import os
 import urllib.request
 
+import pandas
 import pytube
 
 
@@ -73,7 +74,6 @@ class DataFetcher:
 
     def save_data(self):
         for v in self.video_urls:
-            print(v)
             self.downloader.get_video_stream(v, self.res, self.fps,
                                              self.codec)
             self.downloader.save_video(self.folder,
