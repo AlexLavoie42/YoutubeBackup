@@ -26,7 +26,6 @@ def main():
     handler.init_fetcher()
     in_ = input("Enter youtube video url:")
     while in_.lower() is not "quit" or "q":
-        handler.save_videos(in_)
         try:
             handler.save_videos(in_)
         except Exception as e:
