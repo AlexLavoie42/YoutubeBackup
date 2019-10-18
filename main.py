@@ -11,10 +11,9 @@ class VideoHandler:
 
     def init_fetcher(self, res="720p", fps=30,
                      extension="mp4", include_thumbnail=True,
-                     folder=".\\data",
-                     api_key='AIzaSyBE9XOvqMVmsc9o0el2Fc9yYBnxck8UqFM'):
+                     folder=".\\data"):
         self.fetcher = scraper.DataFetcher(res, fps, extension,
-                                           folder, api_key)
+                                           folder)
 
     def save_videos(self, url):
         if isinstance(self.fetcher, scraper.DataFetcher):

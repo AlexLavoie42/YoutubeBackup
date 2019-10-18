@@ -2,14 +2,19 @@ import json
 import os
 import urllib.request
 
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
+import google_auth_oauthlib
+import googleapiclient
 import pandas
 import pytube
 
 
 class Downloader:
-    def __init__(self, api_key):
+    def __init__(self):
         self.stream = None
-        self.api = ApiHandler(api_key)
+        self.api = ApiHandler()
 
     def get_video_stream(self, url, resolution, fps, codec):
         self.stream = pytube.YouTube(url).streams.filter(file_extension=codec,
@@ -32,7 +37,7 @@ class Downloader:
 
 class DataFetcher:
 
-    def __init__(self, resolution, fps, codec, folder, api_key):
+    def __init__(self, resolution, fps, codec, folder):
         self.codec = codec
         self.fps = fps
         self.res = resolution
@@ -43,8 +48,8 @@ class DataFetcher:
         if not os.path.exists(folder):
             os.mkdir(folder)
         self.video_urls = []
-        self.downloader = Downloader(api_key)
-        self.api = ApiHandler(api_key)
+        self.downloader = Downloader()
+        self.api = ApiHandler()
 
     def parse_url(self, url):
         if "youtube.com" not in url:
@@ -82,51 +87,47 @@ class DataFetcher:
 
 
 class ApiHandler:
-    def __init__(self, api_key):
-        self.api_key = api_key
+    credentials = None
+
+    def __init__(self):
+        self.get_oauth_perm()
+        self.youtube = self.get_oauth_perm()
 
     def get_videos_in_channel(self, channel_id):
 
         base_video_url = 'https://www.youtube.com/watch?v='
-        base_search_url = 'https://www.googleapis.com/youtube/v3/search?'
 
-        first_url = base_search_url + \
-                    f'key={self.api_key}&channelId={channel_id}' \
-                    f'&part=snippet,id&order=date&maxResults=25'
-
+        response = self.youtube.channels().list(
+            id=channel_id, part='snippet,id', order='date', maxResults=100)
         video_links = []
-        url = first_url
         while True:
-            inp = urllib.request.urlopen(url)
-            resp = json.load(inp)
+            data = response.execute()
 
-            for i in resp['items']:
+            for i in data['items']:
                 if i['id']['kind'] == "youtube#video":
                     video_links.append(base_video_url + i['id']['videoId'])
 
             try:
-                next_page_token = resp['nextPageToken']
-                url = first_url + '&pageToken={}'.format(next_page_token)
+                next_page_token = data['nextPageToken']
+                data = self.youtube.channels().list(
+                    id=channel_id, part='snippet,id', order='date',
+                    maxResults=100, pageToken=next_page_token
+                )
             except Exception as e:
                 for a in e.args:
                     print(a)
             return video_links
 
     def get_channel_id_from_user(self, user):
-        base_search_url = 'https://www.googleapis.com/youtube/v3/channels?'
-        url = (base_search_url +
-               f'key={self.api_key}&forUsername={user}&part=id')
-        inp = urllib.request.urlopen(url)
-        resp = json.load(inp)
+        resp = self.youtube.channels().list(forUsername=user, part='id')
+        data = resp.execute()
 
-        return resp['items'][0]['id']
+        return data['items'][0]['id']
 
     def get_video_data(self, video_id):
-        search_url = 'https://www.googleapis.com/youtube/v3/videos?key=' \
-                     f'{self.api_key}&part=snippet'
-        url = f"{search_url}&id={video_id}"
-        inp = urllib.request.urlopen(url)
-        data = json.load(inp)['items'][0]['snippet']
+
+        response = self.youtube.videos().list(id=video_id, part='snippet')
+        data = response.execute()['items'][0]['snippet']
 
         title = data['title']
         description = data['description']
@@ -143,6 +144,25 @@ class ApiHandler:
         dislikes = None
         return VideoInfo(title, description, tags, category, thumbnail_url,
                          url, comments, views, subscribers, likes, dislikes)
+
+    @classmethod
+    def get_oauth_perm(cls):
+        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+        api_service_name = "youtube"
+        api_version = "v3"
+        client_secrets_file = \
+            "client_secret_149709932850-svbisje1jr75an75ga6pu1rtagqqd39u.json"
+
+        # Get credentials and create an API client
+        flow = google_auth_oauthlib.flow.InstalledAppFlow\
+            .from_client_secrets_file(client_secrets_file, scopes)
+        if cls.credentials is None:
+            cls.credentials = flow.run_console()
+        return googleapiclient.discovery.build(
+            api_service_name, api_version, credentials=cls.credentials)
 
 
 class VideoInfo:
