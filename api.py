@@ -1,9 +1,8 @@
 import os
+import scraper
 
 import google_auth_oauthlib
 import googleapiclient
-
-from scraper import VideoInfo
 
 
 class ApiHandler:
@@ -61,8 +60,11 @@ class ApiHandler:
         subscribers = None
         likes = None
         dislikes = None
-        return VideoInfo(title, description, tags, category, thumbnail_url,
+        return scraper.VideoInfo(title, description, tags, category, thumbnail_url,
                          url, comments, views, subscribers, likes, dislikes)
+
+    def post_video(self, video_info):
+        pass
 
     @classmethod
     def get_oauth_perm(cls):
@@ -72,13 +74,12 @@ class ApiHandler:
 
         api_service_name = "youtube"
         api_version = "v3"
-        client_secrets_file = \
-            "client_secret_149709932850-svbisje1jr75an75ga6pu1rtagqqd39u.json"
+        client_secrets_file = "client_secret.json"
 
         # Get credentials and create an API client
         flow = google_auth_oauthlib.flow.InstalledAppFlow\
             .from_client_secrets_file(client_secrets_file, scopes)
         if cls.credentials is None:
-            cls.credentials = flow.run_console()
+            cls.credentials = flow.run_local_server()
         return googleapiclient.discovery.build(
             api_service_name, api_version, credentials=cls.credentials)
