@@ -43,7 +43,6 @@ class ApiHandler:
         return data['items'][0]['id']
 
     def get_video_data(self, video_id):
-
         response = self.youtube.videos().list(id=video_id, part='snippet')
         data = response.execute()['items'][0]['snippet']
 
@@ -60,10 +59,11 @@ class ApiHandler:
         subscribers = None
         likes = None
         dislikes = None
-        return scraper.VideoInfo(title, description, tags, category, thumbnail_url,
-                         url, comments, views, subscribers, likes, dislikes)
+        return scraper.VideoInfo(title, description, tags, category,
+                                 thumbnail_url, url, comments, views,
+                                 subscribers, likes, dislikes)
 
-    def post_video(self, video_info):
+    def post_video(self, video_info, video_file_path):
         pass
 
     @classmethod
