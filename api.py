@@ -1,8 +1,11 @@
 import os
-import scraper
 
 import google_auth_oauthlib
+import google_auth_oauthlib.flow
 import googleapiclient
+import googleapiclient.discovery
+
+from data import VideoInfo
 
 
 class ApiHandler:
@@ -59,7 +62,7 @@ class ApiHandler:
         subscribers = None
         likes = None
         dislikes = None
-        return scraper.VideoInfo(title, description, tags, category,
+        return VideoInfo(title, description, tags, category,
                                  thumbnail_url, url, comments, views,
                                  subscribers, likes, dislikes)
 

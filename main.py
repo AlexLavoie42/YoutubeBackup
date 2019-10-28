@@ -1,3 +1,4 @@
+import poster
 import scraper
 
 
