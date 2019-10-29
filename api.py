@@ -63,8 +63,8 @@ class ApiHandler:
         likes = None
         dislikes = None
         return VideoInfo(title, description, tags, category,
-                                 thumbnail_url, url, comments, views,
-                                 subscribers, likes, dislikes)
+                         thumbnail_url, url, comments, views,
+                         subscribers, likes, dislikes)
 
     def post_video(self, video_info, video_file_path):
         pass
