@@ -1,7 +1,5 @@
 import json
 import os
-import string
-import unicodedata
 
 import pandas
 import pytube

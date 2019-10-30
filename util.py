@@ -1,4 +1,8 @@
 import json
+import string
+import unicodedata
+
+from data import VideoInfo
 
 
 def clean_filename(filename, replace='_'):
@@ -25,7 +29,8 @@ def clean_filename(filename, replace='_'):
                 255))
     return cleaned_filename[:255]
 
+
 def open_video_info(file_path):
     with open(file_path) as f:
         data = json.load(f)
-    print(data)
+    return VideoInfo(data=data)
