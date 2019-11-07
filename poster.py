@@ -14,4 +14,3 @@ class VideoPoster:
         video_path = f"{folder}\\{clean_filename(title)}\\"\
                      f"{clean_filename(title)}.{video_extension}"
 
-        self.api.post_video(video_data, video_path)

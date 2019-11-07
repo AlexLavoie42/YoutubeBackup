@@ -76,28 +76,21 @@ class ApiHandler:
                          thumbnail_url, url, comments, views,
                          subscribers, likes, dislikes)
 
-    def post_video(self, video_info, video_file_path):
-        pass
-
-    def initialize_upload(self, youtube, options):
-        tags = None
-        if options.keywords:
-            tags = options.keywords.split(",")
-
+    def initialize_upload(self, video_data, video_file, privacy='private'):
         body = dict(
             snippet=dict(
-                title=options.title,
-                description=options.description,
-                tags=tags,
-                categoryId=options.category
+                title=video_data.data['Title'],
+                description=video_data.data['Description'],
+                tags=video_data.data['Tags'],
+                categoryId=video_data.data['Category']
             ),
             status=dict(
-                privacyStatus=options.privacyStatus
+                privacyStatus=privacy
             )
         )
 
         # Call the API's videos.insert method to create and upload the video.
-        insert_request = youtube.videos().insert(
+        insert_request = self.youtube.videos().insert(
             part=",".join(body.keys()),
             body=body,
             # The chunksize parameter specifies the size of each chunk of data, in
@@ -111,7 +104,7 @@ class ApiHandler:
             # practice, but if you're using Python older than 2.6 or if you're
             # running on App Engine, you should set the chunksize to something like
             # 1024 * 1024 (1 megabyte).
-            media_body=MediaFileUpload(options.file, chunksize=-1,
+            media_body=MediaFileUpload(video_file, chunksize=-1,
                                        resumable=True)
         )
 
