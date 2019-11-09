@@ -2,10 +2,6 @@ import poster
 import scraper
 
 
-class GUI:
-    pass
-
-
 class VideoHandler:
     def __init__(self):
         self.fetcher = None
