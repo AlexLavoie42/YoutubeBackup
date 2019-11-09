@@ -1,3 +1,4 @@
+import abc
 import os
 import random
 import time
@@ -13,24 +14,88 @@ from googleapiclient.http import MediaFileUpload
 from data import VideoInfo
 
 
-class ApiHandler:
-    CREDENTIALS = None
-
-    RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError)
-    RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
-    MAX_RETRIES = 10
-    httplib2.RETRIES = 1
+class Api(abc.ABC):
 
     def __init__(self):
         self.youtube = self.get_oauth_perm()
 
+    @classmethod
+    def get_oauth_perm(cls):
+        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+        api_service_name = "youtube"
+        api_version = "v3"
+        client_secrets_file = "client_secret.json"
+
+        # Get credentials and create an API client
+        flow = google_auth_oauthlib.flow.InstalledAppFlow \
+            .from_client_secrets_file(client_secrets_file, scopes)
+        if cls.CREDENTIALS is None:
+            cls.CREDENTIALS = flow.run_local_server()
+        return googleapiclient.discovery.build(
+            api_service_name, api_version, credentials=cls.CREDENTIALS)
+
+
+# This method implements an exponential backoff strategy to resume a
+# failed upload.
+def resumable_upload(insert_request):
+    retryable_exceptions = (httplib2.HttpLib2Error, IOError)
+    retryable_status_codes = [500, 502, 503, 504]
+    max_retries = 10
+    httplib2.RETRIES = 1
+
+    response = None
+    error = None
+    retry = 0
+    while response is None:
+        try:
+            print("Uploading file...")
+            status, response = insert_request.next_chunk()
+            if response is not None:
+                if 'id' in response:
+                    print(
+                        "Video id '%s' was successfully uploaded." %
+                        response['id'])
+                else:
+                    exit(
+                        "The upload failed with an unexpected response: %s"
+                        % response)
+        except HttpError as e:
+            if e.resp.status in retryable_status_codes:
+                error = "A retriable HTTP error %d occurred:\n%s" % (
+                    e.resp.status,
+                    e.content)
+            else:
+                raise
+        except retryable_exceptions as e:
+            error = "A retriable error occurred: %s" % e
+
+        if error is not None:
+            print(error)
+            retry += 1
+            if retry > max_retries:
+                exit("No longer attempting to retry.")
+
+            max_sleep = 2 ** retry
+            sleep_seconds = random.random() * max_sleep
+            print(
+                "Sleeping %f seconds and then retrying..." % sleep_seconds)
+            time.sleep(sleep_seconds)
+
+
+class RetrieverApi(Api):
+    CREDENTIALS = None
+
+    def __init__(self):
+        super().__init__()
+
     def get_videos_in_channel(self, channel_id):
-
         base_video_url = 'https://www.youtube.com/watch?v='
-
         response = self.youtube.channels().list(
             id=channel_id, part='snippet,id', order='date', maxResults=100)
         video_links = []
+
         while True:
             data = response.execute()
 
@@ -76,6 +141,12 @@ class ApiHandler:
                          thumbnail_url, url, comments, views,
                          subscribers, likes, dislikes)
 
+
+class ChannelApi(Api):
+
+    def __init__(self):
+        super().__init__()
+
     def initialize_upload(self, video_data, video_file, privacy='private'):
         body = dict(
             snippet=dict(
@@ -93,77 +164,20 @@ class ApiHandler:
         insert_request = self.youtube.videos().insert(
             part=",".join(body.keys()),
             body=body,
-            # The chunksize parameter specifies the size of each chunk of data, in
-            # bytes, that will be uploaded at a time. Set a higher value for
-            # reliable connections as fewer chunks lead to faster uploads. Set a lower
-            # value for better recovery on less reliable connections.
+            # The chunksize parameter specifies the size of each chunk of
+            # data, in bytes, that will be uploaded at a time. Set a higher
+            # value for reliable connections as fewer chunks lead to faster
+            # uploads. Set a lower value for better recovery on less
+            # reliable connections.
             #
-            # Setting "chunksize" equal to -1 in the code below means that the entire
-            # file will be uploaded in a single HTTP request. (If the upload fails,
-            # it will still be retried where it left off.) This is usually a best
-            # practice, but if you're using Python older than 2.6 or if you're
-            # running on App Engine, you should set the chunksize to something like
-            # 1024 * 1024 (1 megabyte).
+            # Setting "chunksize" equal to -1 in the code below means that
+            # the entire file will be uploaded in a single HTTP request. (If
+            # the upload fails, it will still be retried where it left off.)
+            # This is usually a best practice, but if you're using Python
+            # older than 2.6 or if you're running on App Engine, you should
+            # set the chunksize to something like 1024 * 1024 (1 megabyte).
             media_body=MediaFileUpload(video_file, chunksize=-1,
                                        resumable=True)
         )
 
-        self.resumable_upload(insert_request)
-
-    # This method implements an exponential backoff strategy to resume a
-    # failed upload.
-    def resumable_upload(self, insert_request):
-        response = None
-        error = None
-        retry = 0
-        while response is None:
-            try:
-                print("Uploading file...")
-                status, response = insert_request.next_chunk()
-                if response is not None:
-                    if 'id' in response:
-                        print(
-                            "Video id '%s' was successfully uploaded." %
-                            response['id'])
-                    else:
-                        exit(
-                            "The upload failed with an unexpected response: %s" % response)
-            except HttpError as e:
-                if e.resp.status in self.RETRIABLE_STATUS_CODES:
-                    error = "A retriable HTTP error %d occurred:\n%s" % (
-                        e.resp.status,
-                        e.content)
-                else:
-                    raise
-            except self.RETRIABLE_EXCEPTIONS as e:
-                error = "A retriable error occurred: %s" % e
-
-            if error is not None:
-                print(error)
-                retry += 1
-                if retry > self.MAX_RETRIES:
-                    exit("No longer attempting to retry.")
-
-                max_sleep = 2 ** retry
-                sleep_seconds = random.random() * max_sleep
-                print(
-                    "Sleeping %f seconds and then retrying..." % sleep_seconds)
-                time.sleep(sleep_seconds)
-
-    @classmethod
-    def get_oauth_perm(cls):
-        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
-
-        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
-        api_service_name = "youtube"
-        api_version = "v3"
-        client_secrets_file = "client_secret.json"
-
-        # Get credentials and create an API client
-        flow = google_auth_oauthlib.flow.InstalledAppFlow \
-            .from_client_secrets_file(client_secrets_file, scopes)
-        if cls.CREDENTIALS is None:
-            cls.CREDENTIALS = flow.run_local_server()
-        return googleapiclient.discovery.build(
-            api_service_name, api_version, credentials=cls.CREDENTIALS)
+        resumable_upload(insert_request)
