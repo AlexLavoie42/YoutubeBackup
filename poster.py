@@ -1,6 +1,6 @@
 from enum import Enum
 
-from api import ApiHandler
+from api import ChannelApi
 from util import clean_filename
 from util import open_video_info
 
@@ -13,7 +13,7 @@ class VideoPoster:
         UNLISTED = 'unlisted'
 
     def __init__(self, privacy: Privacy):
-        self.api = ApiHandler()
+        self.api = ChannelApi()
         self.privacy = privacy
 
     def post_video(self, title, folder, video_extension):

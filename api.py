@@ -14,32 +14,9 @@ from googleapiclient.http import MediaFileUpload
 from data import VideoInfo
 
 
-class Api(abc.ABC):
-
-    def __init__(self):
-        self.youtube = self.get_oauth_perm()
-
-    @classmethod
-    def get_oauth_perm(cls):
-        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
-        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
-        api_service_name = "youtube"
-        api_version = "v3"
-        client_secrets_file = "client_secret.json"
-
-        # Get credentials and create an API client
-        flow = google_auth_oauthlib.flow.InstalledAppFlow \
-            .from_client_secrets_file(client_secrets_file, scopes)
-        if cls.CREDENTIALS is None:
-            cls.CREDENTIALS = flow.run_local_server()
-        return googleapiclient.discovery.build(
-            api_service_name, api_version, credentials=cls.CREDENTIALS)
-
-
 # This method implements an exponential backoff strategy to resume a
 # failed upload.
-def resumable_upload(insert_request):
+def _resumable_upload(insert_request):
     retryable_exceptions = (httplib2.HttpLib2Error, IOError)
     retryable_status_codes = [500, 502, 503, 504]
     max_retries = 10
@@ -63,13 +40,13 @@ def resumable_upload(insert_request):
                         % response)
         except HttpError as e:
             if e.resp.status in retryable_status_codes:
-                error = "A retriable HTTP error %d occurred:\n%s" % (
+                error = "A retryable HTTP error %d occurred:\n%s" % (
                     e.resp.status,
                     e.content)
             else:
                 raise
         except retryable_exceptions as e:
-            error = "A retriable error occurred: %s" % e
+            error = "A retryable error occurred: %s" % e
 
         if error is not None:
             print(error)
@@ -84,8 +61,37 @@ def resumable_upload(insert_request):
             time.sleep(sleep_seconds)
 
 
-class RetrieverApi(Api):
+class Api(abc.ABC):
     CREDENTIALS = None
+
+    def __init__(self):
+        self.youtube = None
+
+    @classmethod
+    def __get_oauth_perm(cls):
+        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+        api_service_name = "youtube"
+        api_version = "v3"
+        client_secrets_file = "client_secret.json"
+
+        # Get credentials and create an API client
+        flow = google_auth_oauthlib.flow.InstalledAppFlow \
+            .from_client_secrets_file(client_secrets_file, scopes)
+        if cls.CREDENTIALS is None:
+            cls.CREDENTIALS =\
+                flow.run_local_server(host='localhost',
+                                      port=8090,
+                                      authorization_prompt_message="")
+        return googleapiclient.discovery.build(
+            api_service_name, api_version, credentials=cls.CREDENTIALS)
+
+    def get_login(self):
+        self.youtube = Api.__get_oauth_perm()
+
+
+class RetrieverApi(Api):
 
     def __init__(self):
         super().__init__()
@@ -180,4 +186,4 @@ class ChannelApi(Api):
                                        resumable=True)
         )
 
-        resumable_upload(insert_request)
+        _resumable_upload(insert_request)

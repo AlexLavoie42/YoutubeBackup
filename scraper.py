@@ -1,17 +1,18 @@
 import json
 import os
+from threading import Thread
 
 import pandas
 import pytube
 
-from api import ApiHandler
-from util import clean_filename
+from api import RetrieverApi
+from util import clean_filename, threaded
 
 
-class Downloader:
+class VideoDownloader:
     def __init__(self):
         self.stream = None
-        self.api = ApiHandler()
+        self.api = RetrieverApi()
 
     def get_video_stream(self, url, resolution, fps, codec):
         self.stream = pytube.YouTube(url).streams.filter(file_extension=codec,
@@ -19,12 +20,15 @@ class Downloader:
                                                          fps=fps).first()
 
     def save_video(self, path, name):
+        print("Saving Video File...")
         if not os.path.exists(f"{path}\\{clean_filename(name)}"):
             os.mkdir(f"{path}\\{clean_filename(name)}")
         if self.stream is not None:
             self.stream.download(f"{path}\\{clean_filename(name)}", name)
+        print("Video File Saved!")
 
     def save_video_data(self, url, path, name):
+        print("Saving Video Data...")
         if not os.path.exists(f"{path}\\{clean_filename(name)}"):
             os.mkdir(f"{path}\\{clean_filename(name)}")
         data = self.api.get_video_data(url.split("v=")[1])
@@ -36,6 +40,7 @@ class Downloader:
         js = pandas.read_json(json_str, typ='series')
         js.to_csv(f"{path}\\{clean_filename(name)}\\{clean_filename(name)}.csv"
                   , header=True)
+        print("Video Data Saved!")
 
 
 class DataFetcher:
@@ -51,8 +56,8 @@ class DataFetcher:
         if not os.path.exists(folder):
             os.mkdir(folder)
         self.video_urls = []
-        self.downloader = Downloader()
-        self.api = ApiHandler()
+        self.downloader = VideoDownloader()
+        self.api = RetrieverApi()
 
     def parse_url(self, url):
         if "youtube.com" not in url:
@@ -79,13 +84,15 @@ class DataFetcher:
             raise ValueError("Unrecognized youtube url")
 
     def save_data(self):
+        def __save_vid(s, v):
+            print(f"Saving {v}...")
+            s.downloader.get_video_stream(v, s.res, s.fps,
+                                          s.codec)
+            s.downloader.save_video(s.folder,
+                                    s.downloader.stream.title)
+            s.downloader.save_video_data(v, s.folder,
+                                         s.downloader.stream.title)
+            print(f"{v} Saved!")
+
         for v in self.video_urls:
-            self.downloader.get_video_stream(v, self.res, self.fps,
-                                             self.codec)
-            self.downloader.save_video(self.folder,
-                                       self.downloader.stream.title)
-            self.downloader.save_video_data(v, self.folder,
-                                            self.downloader.stream.title)
-        self.video_urls = []
-
-
+            threaded(__save_vid(self, v))

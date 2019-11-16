@@ -1,7 +1,9 @@
 class VideoInfo:
-    def __init__(self, title, description, tags, category,
-                 thumbnail_url, url,
-                 comments, views, subscribers, likes, dislikes, data=None):
+    def __init__(self, title=None, description=None,
+                 tags=None, category=None,
+                 thumbnail_url=None, url=None,
+                 comments=None, views=None, subscribers=None,
+                 likes=None, dislikes=None, data=None):
         if data is None:
             self.data = {
                 'Title': title,

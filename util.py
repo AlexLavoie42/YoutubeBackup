@@ -1,6 +1,7 @@
 import json
 import string
 import unicodedata
+from threading import Thread
 
 from data import VideoInfo
 
@@ -16,7 +17,7 @@ def clean_filename(filename, replace='_'):
         filename = filename.replace(r, '_')
 
     # keep only valid ascii chars
-    cleaned_filename = unicodedata.normalize('NFKD', filename).\
+    cleaned_filename = unicodedata.normalize('NFKD', filename). \
         encode('ASCII',
                'ignore').decode()
 
@@ -34,3 +35,8 @@ def open_video_info(file_path):
     with open(file_path) as f:
         data = json.load(f)
     return VideoInfo(data=data)
+
+
+def threaded(func, on_finish=None):
+    thread = Thread(target=func)
+    thread.start()
