@@ -84,8 +84,6 @@ class HomeGUI(GUI):
         current_video.grid(column=1, row=4, pady=10)
 
 
-
-
 if __name__ == '__main__':
-    gui = HomeGUI("Youtube Backup V0.1")
+    gui = HomeGUI("Youtube Backup V1.1")
     gui.run()

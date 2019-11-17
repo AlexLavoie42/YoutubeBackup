@@ -68,7 +68,7 @@ class Api(abc.ABC):
         self.youtube = None
 
     @classmethod
-    def __get_oauth_perm(cls):
+    def _get_oauth_perm(cls):
         scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -88,7 +88,7 @@ class Api(abc.ABC):
             api_service_name, api_version, credentials=cls.CREDENTIALS)
 
     def get_login(self):
-        self.youtube = Api.__get_oauth_perm()
+        self.youtube = Api._get_oauth_perm()
 
 
 class RetrieverApi(Api):
@@ -98,6 +98,8 @@ class RetrieverApi(Api):
 
     def get_videos_in_channel(self, channel_id):
         base_video_url = 'https://www.youtube.com/watch?v='
+        if self.youtube is None:
+            self.youtube = Api._get_oauth_perm()
         response = self.youtube.channels().list(
             id=channel_id, part='snippet,id', order='date', maxResults=100)
         video_links = []
@@ -121,12 +123,16 @@ class RetrieverApi(Api):
             return video_links
 
     def get_channel_id_from_user(self, user):
+        if self.youtube is None:
+            self.youtube = Api._get_oauth_perm()
         resp = self.youtube.channels().list(forUsername=user, part='id')
         data = resp.execute()
 
         return data['items'][0]['id']
 
     def get_video_data(self, video_id):
+        if self.youtube is None:
+            self.youtube = Api._get_oauth_perm()
         response = self.youtube.videos().list(id=video_id, part='snippet')
         data = response.execute()['items'][0]['snippet']
 
@@ -154,6 +160,8 @@ class ChannelApi(Api):
         super().__init__()
 
     def initialize_upload(self, video_data, video_file, privacy='private'):
+        if self.youtube is None:
+            self.youtube = Api._get_oauth_perm()
         body = dict(
             snippet=dict(
                 title=video_data.data['Title'],

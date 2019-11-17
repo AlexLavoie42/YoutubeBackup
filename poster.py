@@ -17,8 +17,10 @@ class VideoPoster:
         self.privacy = privacy
 
     def post_video(self, title, folder, video_extension):
+        print(f"Posting {title}")
         video_data = open_video_info(f"{folder}\\{clean_filename(title)}\\"
                                      f"{clean_filename(title)}.json")
         video_path = f"{folder}\\{clean_filename(title)}\\"\
                      f"{clean_filename(title)}.{video_extension}"
         self.api.initialize_upload(video_data, video_path, self.privacy)
+        print(f"Posted {title}")
