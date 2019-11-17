@@ -1,3 +1,5 @@
+import os
+
 import poster
 import scraper
 from util import open_video_info
@@ -11,6 +13,7 @@ class VideoManager:
         self.fetcher = scraper.DataFetcher(res, fps, extension,
                                            folder)
         self.poster = poster.VideoPoster(privacy)
+        self.extension = extension
 
     def save_videos(self, url):
         if isinstance(self.fetcher, scraper.DataFetcher):
@@ -22,7 +25,8 @@ class VideoManager:
 
     def post_video(self, path):
         video = open_video_info(path)
-        self.poster.post_video(video.data['Title'], path)
+        for w in [x[0] for x in os.walk(path)]:
+            self.poster.post_video(video.data['Title'], w, self.extension)
 
     def login(self):
         self.fetcher.api.get_login()
