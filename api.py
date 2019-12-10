@@ -10,6 +10,7 @@ import googleapiclient.discovery
 import httplib2
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
+from pandas._libs import json
 
 from data import VideoInfo
 
@@ -69,7 +70,7 @@ class Api(abc.ABC):
 
     @classmethod
     def _get_oauth_perm(cls):
-        scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+        scopes = ["https://www.googleapis.com/auth/youtube"]
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         api_service_name = "youtube"
@@ -101,21 +102,21 @@ class RetrieverApi(Api):
         if self.youtube is None:
             self.youtube = Api._get_oauth_perm()
         response = self.youtube.channels().list(
-            id=channel_id, part='snippet,id', order='date', maxResults=100)
+            id=channel_id, part='snippet,id', maxResults=50)
         video_links = []
 
         while True:
             data = response.execute()
 
             for i in data['items']:
-                if i['id']['kind'] == "youtube#video":
+                if i['kind'] == "youtube#video":
                     video_links.append(base_video_url + i['id']['videoId'])
 
             try:
                 next_page_token = data['nextPageToken']
                 data = self.youtube.channels().list(
-                    id=channel_id, part='snippet,id', order='date',
-                    maxResults=100, pageToken=next_page_token
+                    id=channel_id, part='snippet,id',
+                    maxResults=50, pageToken=next_page_token
                 )
             except Exception as e:
                 for a in e.args:

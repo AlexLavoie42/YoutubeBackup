@@ -35,7 +35,7 @@ class VideoDownloader:
 
         json_str = json.dumps(data.data)
         with open(f"{path}\\{clean_filename(name)}\\"
-                  f"{clean_filename(name)}.json", "w+") as f:
+                  f"data.json", "w+") as f:
             f.write(json_str)
         js = pandas.read_json(json_str, typ='series')
         js.to_csv(f"{path}\\{clean_filename(name)}\\{clean_filename(name)}.csv"

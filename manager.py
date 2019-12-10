@@ -24,9 +24,12 @@ class VideoManager:
                 print(f"{url} is not a valid Youtube URL")
 
     def post_video(self, path):
-        video = open_video_info(path)
         for w in [x[0] for x in os.walk(path)]:
-            self.poster.post_video(video.data['Title'], w, self.extension)
+            try:
+                video = open_video_info(f"{w}/data.json")
+                self.poster.post_video(video.data['Title'], w, self.extension)
+            except FileNotFoundError:
+                pass
 
     def login(self):
         self.fetcher.api.get_login()
