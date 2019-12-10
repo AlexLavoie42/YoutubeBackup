@@ -1,6 +1,5 @@
 import json
 import os
-from threading import Thread
 
 import pandas
 import pytube
@@ -10,16 +9,30 @@ from util import clean_filename, threaded
 
 
 class VideoDownloader:
+    """Handles the downloading of video files."""
+
     def __init__(self):
         self.stream = None
         self.api = RetrieverApi()
 
     def get_video_stream(self, url, resolution, fps, codec):
+        """
+        Gets video stream from PYTube.
+        :param url: Video URL.
+        :param resolution: Resolution to download video in.
+        :param fps: FPS to download video in.
+        :param codec: Codec to download video.
+        """
         self.stream = pytube.YouTube(url).streams.filter(file_extension=codec,
                                                          res=resolution,
                                                          fps=fps).first()
 
     def save_video(self, path, name):
+        """
+        Saves video file.
+        :param path: Path to save video to.
+        :param name: Video name.
+        """
         print("Saving Video File...")
         if not os.path.exists(f"{path}\\{clean_filename(name)}"):
             os.mkdir(f"{path}\\{clean_filename(name)}")
@@ -28,6 +41,12 @@ class VideoDownloader:
         print("Video File Saved!")
 
     def save_video_data(self, url, path, name):
+        """
+        Saves video data to CSV and JSON
+        :param url: Video URL.
+        :param path: Path to save data to.
+        :param name: Video name.
+        """
         print("Saving Video Data...")
         if not os.path.exists(f"{path}\\{clean_filename(name)}"):
             os.mkdir(f"{path}\\{clean_filename(name)}")
@@ -44,8 +63,15 @@ class VideoDownloader:
 
 
 class DataFetcher:
+    """Class for parsing URLs & saving data."""
 
     def __init__(self, resolution, fps, codec, folder):
+        """
+        :param resolution: Resolution to save video in.
+        :param fps: FPS to save video in.
+        :param codec: Codec to save video in.
+        :param folder: Folder to save video in.
+        """
         self.codec = codec
         self.fps = fps
         self.res = resolution
@@ -60,6 +86,11 @@ class DataFetcher:
         self.api = RetrieverApi()
 
     def parse_url(self, url):
+        """
+        Parses URL and finds out which method to use.
+        TODO: Do this properly.
+        :param url: Video URL.
+        """
         if "youtube.com" not in url:
             raise ValueError("'url' must be a valid youtube url")
         elif 'list' in url:
@@ -84,6 +115,7 @@ class DataFetcher:
             raise ValueError("Unrecognized youtube url")
 
     def save_data(self):
+        """Saves video data."""
         def __save_vid(s, v):
             print(f"Saving {v}...")
             s.downloader.get_video_stream(v, s.res, s.fps,

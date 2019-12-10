@@ -10,7 +10,6 @@ import googleapiclient.discovery
 import httplib2
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
-from pandas._libs import json
 
 from data import VideoInfo
 
@@ -63,6 +62,8 @@ def _resumable_upload(insert_request):
 
 
 class Api(abc.ABC):
+    """Abstract base class for Google API interactions.
+       #TODO: Set up permissions properly."""
     CREDENTIALS = None
 
     def __init__(self):
@@ -70,6 +71,7 @@ class Api(abc.ABC):
 
     @classmethod
     def _get_oauth_perm(cls):
+        """Gets permissions globally and stores credentials."""
         scopes = ["https://www.googleapis.com/auth/youtube"]
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -89,15 +91,23 @@ class Api(abc.ABC):
             api_service_name, api_version, credentials=cls.CREDENTIALS)
 
     def get_login(self):
+        """Gets login for this API object."""
         self.youtube = Api._get_oauth_perm()
 
 
 class RetrieverApi(Api):
+    """Handles retrieving data from Google API."""
 
     def __init__(self):
         super().__init__()
 
-    def get_videos_in_channel(self, channel_id):
+    def get_videos_in_channel(self, channel_id: int):
+        """
+        Returns all video urls in for given channel ID.
+        TODO: Fix!
+        :param channel_id:
+        :return: list of video urls.
+        """
         base_video_url = 'https://www.youtube.com/watch?v='
         if self.youtube is None:
             self.youtube = Api._get_oauth_perm()
@@ -124,6 +134,11 @@ class RetrieverApi(Api):
             return video_links
 
     def get_channel_id_from_user(self, user):
+        """
+        Gets channel ID for user name.
+        :param user: User channel name.
+        :return: Channel ID.
+        """
         if self.youtube is None:
             self.youtube = Api._get_oauth_perm()
         resp = self.youtube.channels().list(forUsername=user, part='id')
@@ -131,7 +146,12 @@ class RetrieverApi(Api):
 
         return data['items'][0]['id']
 
-    def get_video_data(self, video_id):
+    def get_video_data(self, video_id: int):
+        """
+        Gets JSON data for video id.
+        :param video_id: ID of video.
+        :return: VideoInfo
+        """
         if self.youtube is None:
             self.youtube = Api._get_oauth_perm()
         response = self.youtube.videos().list(id=video_id, part='snippet')
@@ -156,11 +176,19 @@ class RetrieverApi(Api):
 
 
 class ChannelApi(Api):
+    """API for dealing with users youtube channel."""
 
     def __init__(self):
         super().__init__()
 
     def initialize_upload(self, video_data, video_file, privacy='private'):
+        """
+        Starts the uploading of a given video.
+        :param video_data: Video JSON data.
+        :param video_file: Video file.
+        :param privacy: Privacy of uploaded video
+                        ("public", "private", "unlisted")
+        """
         if self.youtube is None:
             self.youtube = Api._get_oauth_perm()
         body = dict(

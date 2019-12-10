@@ -8,6 +8,7 @@ from util import threaded
 
 
 class GUI(abc.ABC):
+    """Abstract class for a GUI."""
 
     def __init__(self, title, manager=VideoManager()):
         self.manager = manager
@@ -21,10 +22,13 @@ class GUI(abc.ABC):
 
     @abc.abstractmethod
     def run(self):
+        """Runs the GUI.
+           Must create and show all elements as well as run mainloop."""
         pass
 
 
 class HomeGUI(GUI):
+    """GUI for home page."""
 
     def __init__(self, title):
         super().__init__(title)
@@ -73,10 +77,13 @@ class HomeGUI(GUI):
         self.root.mainloop()
 
     def threaded_with_path(self, func):
+        """Runs the function in a separate thread while giving it the
+         current path."""
         if self.folder != "":
             threaded(lambda: func(self.folder))
 
     def set_path(self):
+        """Opens a new filedialog and sets selected file as current path."""
         self.folder = filedialog.askdirectory()
         self.manager.change_folder(self.folder)
         current_video = ttk.Label(self.mainframe,
