@@ -11,7 +11,7 @@ class VideoManager:
     def __init__(self, res="720p", fps=30,
                  extension="mp4", include_thumbnail=True,
                  folder=".\\data",
-                 privacy=poster.VideoPoster.Privacy.UNLISTED):
+                 privacy=poster.VideoPoster.Privacy.UNLISTED.name):
         """
         :param res: Video resolution to save.
         :param fps: Video FPS to save.

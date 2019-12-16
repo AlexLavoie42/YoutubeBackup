@@ -25,9 +25,13 @@ class VideoPoster:
         :param video_extension: Extension of video file.
         """
         print(f"Posting {title}")
-        video_data = open_video_info(f"{folder}\\{clean_filename(title)}\\"
-                                     f"{clean_filename(title)}.json")
-        video_path = f"{folder}\\{clean_filename(title)}\\"\
+        print(f"{folder}\\data.json")
+        video_data = open_video_info(f"{folder}\\"
+                                     f"data.json")
+        print(f"{video_data}")
+        video_path = f"{folder}\\"\
                      f"{clean_filename(title)}.{video_extension}"
+        print(f"{video_path}")
+        print(f"{self.privacy}")
         self.api.initialize_upload(video_data, video_path, self.privacy)
         print(f"Posted {title}")
